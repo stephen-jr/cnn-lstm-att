@@ -17,10 +17,11 @@
       </div>
       <div class="grid">
         <div id="upload-section">
-          <h2 class="text-center wow animate__animated animate__fadeInRight ml12">Select Text Data to be analysed</h2>
+          <h2 class="text-center wow animate__animated animate__fadeInRight ml12">Select Text Data for Training</h2>
+          <p class="warn"><strong><small>(Please do not train on a sub optimal system)</small></strong></p>
           <div style="position: absolute; right: 46%;" class="upld wow button button--primary button--rounded animation animate__animated animate__fadeInUp">
             <a style="cursor: pointer; color: #fff;">Upload</a>
-            <input id="upload" style="cursor: pointer;" type="file" accept=".csv, .json" />
+            <input id="upload" style="cursor: pointer;" type="file" accept=".json" />
           </div>
           <br>
           <div style="display: flex; justify-content: center;">
@@ -45,17 +46,7 @@
       </div>
     </section>
   </main>
-  <section id="table" style="text-align: center; background-color: white; padding: 20px; overflow-x: scroll;">
-    <div class="row">
-      <div id="file_table" class="col-md-12">
-        <h4>File Preview</h4>
-        <div class="tbl"></div>static/
-      </div>
-      <div id="insights_table" class="hidden col-md-3">
-        <h4>Insights Summary</h4>
-        <div class="tbl"></div>
-      </div>
-    </div>
+  <section id="console" style="text-align:center;background-color:white;padding:20px;overflow-x:scroll; overflow-y:scroll;">
   </section>
   <script type="text/javascript" src="/eel.js"></script>
   <script type="text/javascript" src="static/js/jquery.min.js"></script>

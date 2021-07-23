@@ -60,6 +60,8 @@ const upload = () => {
       header: true,
       dynamicTyping: true,
       complete: (results => {
+        console.log(results)
+        return false
         let table_data = '<table class="table table-bordered table-striped col-md-12">'; 
         table_data += "<tr>";
         Object.keys(results.data[0]).forEach(k => { table_data +=`<th>${k}</th>`; });
@@ -84,17 +86,17 @@ const upload = () => {
     }
 };
 
-const processData = () => {
-  $('main .site__section').css('min-height', '100vh');
-  $('.site__section--start').css('background-repeat', 'round');
-  $('#next').hide();
-  $('.box').hide();
-  $('#message').html('Please Wait while your file is processed');
-  $('#loader').show();
-  $('#table').hide();
+const _beforeProcessDataUI  = () => {
+      $('main .site__section').css('min-height', '100vh');
+      $('#next').hide();
+      $('.box').hide();
+      $('#message').html('Please Wait while your file is processed');
+      $('#loader').show();
+      $('#table').hide();
+      return false
+}
 
-  eel.classify(fileData.data)(val=> {
-    console.log(val);
+const _afterProcessDataUI = ( val ) => {
     if(!$.isEmptyObject(val)){
       if(val.error){
          notification({
@@ -149,8 +151,28 @@ const processData = () => {
        $('#loader').hide();
        $('.upld').show();
     }
+    return false;
+}
+
+const processData = () => {
+
+ _beforeProcessDataUI()
+
+  eel.classify(fileData.data)(val=> {
+    console.log(val);
+        _afterProcessDataUI( val );
   });
 };
+
+const processDataFlask = () => {
+    _beforeProcessDataUI();
+    let source = new SSE('/train',{
+       headers:{
+        'Content-Type': 'application/json',
+       },
+       payload: JSON.stringify(fileData.data);
+    });
+}
 
 $(function () {
   $('#upload').on('change', upload);
@@ -159,7 +181,9 @@ $(function () {
   $('#loader').hide();
   $('#message').hide();
   $('#table').hide();
-  $('#next').bind('click', processData);
+//  $('#next').bind('click', processData);
+  $('#next').bind('click', processDataFlask);
+//  $('#nextTrain').bind('click', processDataFlask);
 
   new WOW().init();
 });

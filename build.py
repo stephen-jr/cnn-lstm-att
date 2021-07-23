@@ -1,4 +1,7 @@
 import re
+import sys
+import json
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -16,7 +19,7 @@ from tensorflow.keras.layers import Concatenate, Dense, Input, LSTM, Embedding
 from tensorflow.keras.layers import Dropout, Bidirectional, Conv1D
 from tensorflow.keras.layers import Layer, MaxPooling1D
 from tensorflow.keras.models import Model
-from tensorflow.keras.metrics import Precision, Recall, AUC, CategoricalAccuracy
+from tensorflow.keras.metrics import Precision, Recall, AUC, BinaryAccuracy
 
 
 def preprocess_text(v):
@@ -72,7 +75,7 @@ def plot_metrics(hist):
         plt.savefig("Training History.png")
 
 
-def plot_cm(labels, predictions, p=0.5):
+def plot_cm(labels, predictions):
     cm = confusion_matrix(labels, predictions)
     plt.figure(figsize=(5, 5))
     sns.heatmap(cm, annot=True, fmt="d")
@@ -101,18 +104,26 @@ class BAttention(Layer):
 
 if __name__ == '__main__':
     metrics = [
-        CategoricalAccuracy(name='accuracy'),
+        BinaryAccuracy(name='accuracy'),
         Precision(name='precision'),
         Recall(name='recall'),
         AUC(name='auc'),
     ]
 
-    df = pd.read_json("Musical_Instruments_5.json", lines=True)
-    X = df.reviewText.astype('str').apply(preprocess_text)
-    Y = pd.get_dummies(df.overall).values
-    sequence_length = [len(x.split(" ")) for x in X]
-    maxlen = int(np.mean([np.mean(sequence_length), np.median(sequence_length)]))
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+    args = sys.argv
+    if args[1] == '--train' and args[2]:
+        json_string = args[2]
+        json_string = json.loads(json_string)
+        df = pd.DataFrame.from_dict(json_string, orient='index')
+        df.reset_index(level=0, inplace=True)
+        print( df.head() )
+        exit()
+        # df = pd.read_json("Musical_Instruments_5.json", lines=True)
+        X = df.reviewText.astype('str').apply(preprocess_text)
+        Y = pd.get_dummies(df.overall).values
+        sequence_length = [len(x.split(" ")) for x in X]
+        maxlen = int(np.mean([np.mean(sequence_length), np.median(sequence_length)]))
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
 
     # Tokenize sentences
     print("Tokenizing words ...... ")

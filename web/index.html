@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Product Review Sentiment Analysis</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="static/css/style.css" />
 </head>
 
 <body>
@@ -15,13 +15,14 @@
         <h1 class="fadeInLeft text-center ml12">Binary Sentiment Classification ( GUI)</h1>
         <p class="text-center">(A Hybrid Convolutional Long Short Term Memory Network Classificator with Attention)</p>
         <div style="display: flex; justify-content: center;">
-          <a href='upload.html' class="button button--primary button--rounded animation fadeInUp">Proceed</a>
+          <a href='train.html' class="button button--primary button--rounded animation fadeInUp">Train</a>
+          <a href='upload.html' class="button button--primary button--rounded animation fadeInUp">Classify</a>
         </div>
       </div>
     </section>
   </main>
   <script type="text/javascript" src="/eel.js"></script>
-  <script type="text/javascript" src="js/anime.min.js"></script>
+  <script type="text/javascript" src="static/js/anime.min.js"></script>
   <script>
     var textWrapper = document.querySelector('.ml12');
     textWrapper.innerHTML = textWrapper.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
