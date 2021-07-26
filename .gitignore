@@ -2,3 +2,4 @@ classification
 models
 utils
 .idea
+*.json
