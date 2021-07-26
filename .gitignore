@@ -3,3 +3,5 @@ models
 utils
 .idea
 *.json
+.vscode
+__pycache__
