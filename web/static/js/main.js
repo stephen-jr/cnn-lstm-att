@@ -126,7 +126,7 @@ const upload = () => {
 };
 
 const _beforeProcessDataUI = () => {
-  $("main .site__section").css("min-height", "100vh");
+  $("main .site__section").css("min-height", "100vh").removeClass('--end');
   $("#next").hide();
   $(".box").hide();
   $("#message").html("Please Wait while your file is processed");
@@ -176,7 +176,7 @@ const _afterProcessDataUI = (val) => {
       table_data = `<table class="table table-bordered table-striped">`;
       Object.keys(val.insight).forEach((key) => {
         table_data += `<tr>
-                              <td>${key.toString().toUpperCase()}</td>
+                              <td>${key == 0 ? "Negative" : "Positive"}</td>
                               <td>${val.insight[key]}</td>
                           </tr>`;
       });
@@ -184,7 +184,7 @@ const _afterProcessDataUI = (val) => {
       $("#table").show();
       $("#insights_table .tbl").html(table_data);
       $("#insights_table").show();
-      $("main .site__section").css("min-height", "40vh");
+      $("main .site__section").css("min-height", "40vh").addClass('--end');
     }
   } else {
     notification({
@@ -199,7 +199,6 @@ const _afterProcessDataUI = (val) => {
 
 const processData = () => {
   _beforeProcessDataUI();
-
   eel.classify(fileData.data)((val) => {
     console.log(val);
     _afterProcessDataUI(val);
@@ -235,11 +234,30 @@ const processDataFlask = () => {
         payload: JSON.stringify(fileData.data),
       });
       source.onmessage = (e) =>{
-        
+
       }
       break;
   }
 };
+
+const terminateSubprocess = () => {
+  $.ajax({
+    url: '/terminate',
+    success: (data, status, xhr) =>{
+      data = JSON.parse(data);
+      notification({
+        type: 'info',
+        message: data.info
+      })
+    },
+    error: (xhr, status, error) =>{
+      notification({
+        type: 'danger',
+        message: error
+      });
+    }
+  })
+}
 
 $(function () {
   $("#upload").on("change", upload);

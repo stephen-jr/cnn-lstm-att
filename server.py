@@ -5,6 +5,7 @@ import dill
 import shlex
 import subprocess
 from flask_cors import CORS
+from datetime import datetime
 # import keras.backend as k
 from flask import Flask, request, render_template, Response, jsonify
 from tensorflow.keras.models import load_model
@@ -51,7 +52,6 @@ def event_stream(system_command, **kwargs):
 
 app = Flask(__name__, template_folder='web', static_folder='web/static')
 CORS(app)
-app.debug = True
 
 
 @app.route('/', methods=['GET'])
@@ -99,7 +99,7 @@ def classify():
                         _f['Polarity'] = ['Positive' if x >= 0.5 else 'Negative' for x in _p]
                         _f.to_csv("classification/insight.csv")
                         _s = _f.sample(n=10)
-                        return Response({
+                        return jsonify({
                             'sentences': _s["text"].to_list(),
                             'predictions': _s["PredictionScores"].astype("float").apply(lambda x: round(x, 5)).to_list(),
                             'polarity': _s["Polarity"].to_list(),
@@ -112,7 +112,19 @@ def classify():
             error( str(e) )
     else:
         return error("Invalid request data")
-   
 
-
-app.run()
+@app.route('/terminate', methods=['GET'])
+def terminate():
+    global process
+    if process is not None:
+        process.terminate()
+        process = None
+        return jsonify({
+            'info': 'Subprocess Terminated Successfully'
+        })
+    else:
+        return jsonify({
+            'info': "No subprocess is active at the moment"
+        })
+if __name__ == '__main__':
+    app.run(debug=True)

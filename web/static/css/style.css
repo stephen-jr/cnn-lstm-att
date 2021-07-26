@@ -103,7 +103,12 @@ body {
 
 .site__section--start {
   background: url("../img/index.png") 50% / cover no-repeat;
-  /*background-repeat: round;*/
+  outline: none;
+}
+
+.site__section--start.--end{
+  background: url("../img/index.png");
+  background-repeat: round;
   outline: none;
 }
 
