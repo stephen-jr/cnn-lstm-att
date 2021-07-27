@@ -13,9 +13,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pandas as pd
 from build import preprocess_text
 
-process = None
-model = None
-tokenizer = None
+process, model, tokenizer, subprocess_data = (None,)*4
 # template_dir = os.path.abspath('web')
 
 def error(msg):
@@ -69,10 +67,22 @@ def train_template():
     return render_template('train.html')
 
 
-@app.route('/train', methods=['POST'])
+@app.route('/train', methods=['GET', 'POST'])
 def train():
-    print(request)
-    # return Response(event_stream('py build.py --train '), mimetype="text/event-stream")
+    global subprocess_data
+    if request.method == "POST":
+        subprocess_data = request.json
+        with open('tmp/'+ subprocess_data['fileName']+'.txt') as f:
+            json.dump(subprocess_data['data'], f)
+        return jsonify({
+            'info': 'Data received successfully'
+        });
+    elif request.method == "GET" and subprocess_data is not None:
+        print('====Training Initialized====')
+        f = 'py build.py --train --from-temp {}'.format(subprocess_data['fileName'] )
+        return Response(event_stream(f), mimetype="text/event-stream")
+    else: 
+        return error("Invalid Subprocess Data");
 
 
 @app.route('/classify', methods=['POST'])

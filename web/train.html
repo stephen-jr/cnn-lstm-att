@@ -18,19 +18,18 @@
       <div class="grid">
         <div id="upload-section">
           <h2 class="text-center wow animate__animated animate__fadeInRight ml12">Select Text Data for Training</h2>
-          <p class="warn text-center"><strong>(Please do not train on a sub optimal system)</strong></p>
-          <div style="position: absolute; right: 46%;" class="upld wow button button--primary button--rounded animation animate__animated animate__fadeInUp">
+          <p class="text-warning text-center"><strong>(Please do not train on a sub optimal system)</strong></p>
+          <div class="upld wow button button--primary button--rounded animation animate__animated animate__fadeInUp">
             <a style="cursor: pointer; color: #fff;">Upload</a>
             <input id="upload" style="cursor: pointer;" type="file" accept=".json" />
           </div>
           <br>
-          <div style="display: flex; justify-content: center;">
+          <div class="btn-proceed">
             <a href="#" id="next" class="button button--primary button--rounded animation">Proceed</a>
           </div>
           &nbsp;
           <br>
-          <br>
-          <p id="message" class="text-center">Find a preview of your file below</p>
+          <p id="message" class="text-center"></p>
           <p id="loader" class="text-center">
             <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
               style="margin:auto;background:none;display:inline-block;" width="20px" height="20px" viewBox="0 0 100 100"
@@ -47,6 +46,7 @@
     </section>
   </main>
   <section id="console">
+    <div id="scrollable"></div>
   </section>
   <section id="train-details"></section>
   <script type="text/javascript" src="/eel.js"></script>
@@ -55,7 +55,6 @@
   <script type="text/javascript" src="static/js/wow.min.js"></script>
   <script type="text/javascript" src="static/js/papaparse.min.js"></script>
   <script type="text/javascript" src="static/js/anime.min.js"></script>
-  <script type="text/javascript" src="static/js/sse.js"></script>
   <script type="text/javascript" src="static/js/main.js"></script>
 </body>
 

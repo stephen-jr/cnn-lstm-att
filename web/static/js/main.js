@@ -1,6 +1,6 @@
 /* jshint esversion : 6 */
 
-var fileData, ext, type = window.location.pathname.split('.')[0].split('/').pop();
+var fileData, fileName, ext, type = window.location.pathname.split('.')[0].split('/').pop();
 
 var textWrapper = document.querySelector(".ml12");
 textWrapper.innerHTML = textWrapper.textContent.replace(
@@ -8,7 +8,9 @@ textWrapper.innerHTML = textWrapper.textContent.replace(
   "<span class='letter'>$&</span>"
 );
 anime
-  .timeline({ loop: true })
+  .timeline({
+    loop: true
+  })
   .add({
     targets: ".ml12 .letter",
     translateX: [40, 0],
@@ -55,7 +57,7 @@ const notification = (opt) => {
 
 const formatTable = (results) => {
   let table_data =
-  '<table class="table table-bordered table-striped col-md-12">';
+    '<table class="table table-bordered table-striped col-md-12">';
   table_data += "<tr>";
   Object.keys(results.data[0]).forEach((k) => {
     table_data += `<th>${k}</th>`;
@@ -78,7 +80,7 @@ const formatTable = (results) => {
   $("#table").show();
   $("main .site__section").css("min-height", "40vh");
   fileData = results;
-} 
+}
 
 const upload = () => {
   if (!hasExtension())
@@ -92,9 +94,9 @@ const upload = () => {
     $(".upld").hide();
     $(".box").show();
     data = event.target.files[0];
-    console.log(data);
+    // console.log(data);
     ext = data.name.split(".").pop();
-    switch( ext ){
+    switch (ext) {
       case 'csv':
         Papa.parse(data, {
           header: true,
@@ -109,10 +111,9 @@ const upload = () => {
         reader = new FileReader();
         reader.readAsText(data)
         reader.onload = (event) => {
-          // console.log(event.target.result);
-          formatTable({
-            'data':data
-          });
+          fileData = event.target.result.split("\n");
+          fileName = data.name
+          $('#message').text(fileName);
         }
         break;
       default:
@@ -126,7 +127,7 @@ const upload = () => {
 };
 
 const _beforeProcessDataUI = () => {
-  $("main .site__section").css("min-height", "100vh").removeClass('--end');
+  $("main .site__section").css("min-height", "100vh").removeClass('--end red-height');
   $("#next").hide();
   $(".box").hide();
   $("#message").html("Please Wait while your file is processed");
@@ -134,6 +135,12 @@ const _beforeProcessDataUI = () => {
   $("#table").hide();
   return false;
 };
+
+const reInit = () => {
+  $("#loader").hide();
+  $(".upld").show();
+  $('#message').hide();
+}
 
 const _afterProcessDataUI = (val) => {
   if (!$.isEmptyObject(val)) {
@@ -150,8 +157,7 @@ const _afterProcessDataUI = (val) => {
       $("#next").hide();
       notification({
         type: "success",
-        message:
-          "Classification Successful. Find details in the classification folder",
+        message: "Classification Successful. Find details in the classification folder",
       });
       table_data = `<table class="table table-bordered table-striped" style='margin:0 auto;'>`;
       table_data += `<tr>
@@ -191,8 +197,7 @@ const _afterProcessDataUI = (val) => {
       type: "danger",
       message: "Error get prediction data",
     });
-    $("#loader").hide();
-    $(".upld").show();
+    reInit();
   }
   return false;
 };
@@ -207,50 +212,114 @@ const processData = () => {
 
 const processDataFlask = () => {
   _beforeProcessDataUI();
-  switch(type){
+  switch (type) {
     case 'upload':
-        $.ajax({
-          url: '/classify',
-          method: 'POST',
-          contentType: "application/json",
-          dataType: "json",
-          data: JSON.stringify(fileData.data),
-          success: (val, status, xhr) =>{
-            _afterProcessDataUI(val);
-          },
-          error: (xhr, status, error) =>{
-            notification({
-              type: 'danger',
-              message: error
-            });
-          }
-        })
+      $.ajax({
+        url: '/classify',
+        method: 'POST',
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify(fileData.data),
+        success: (val, status, xhr) => {
+          _afterProcessDataUI(val);
+        },
+        error: (xhr, status, error) => {
+          notification({
+            type: 'danger',
+            message: error
+          });
+         reInit();
+        }
+      })
       break;
     case 'train':
-      let source = new SSE("/train", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        payload: JSON.stringify(fileData.data),
-      });
-      source.onmessage = (e) =>{
+      let url = '/train';
+      $.ajax({
+        url: url,
+        method: 'POST',
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({
+          fileName: fileName,
+          data: fileData
+        }),
+        success: (val, status, xhr) => {
+          if(val.info){
+            let source = new EventSource(url);
+            source.onmessage = (e) => {
+              let { data } = e;
+              data = JSON.parse(data);
+              if( !($('.site__section').hasClass('red-height')) ){
+                $('.site__section').addClass('red-height --end');
+              }
+              $('#console').show();
+              if (data.execution) {
+                $('#scrollable').append(`<p>${data.response}</p>`);
+                $("#scrollable").scrollTop = $("#scrollable").scrollHeight;
+              }else if (data.info) {
+                notification({
+                  type: "info",
+                  message: data.info,
+                });
+                reInit();
+                source.close();
+              }else if (data.error) {
+                notification({
+                  type: "danger",
+                  message: data.error,
+                });
+                reInit();
+                source.close();
+              }else {
+                reInit();
+                source.close();
+              }
+            }
+            source.onerror = (error) => {
+              notification({
+                type: 'danger',
+                message: error
+              });
+              reInit();
+            }
+          }else if(val.error){ 
+            notification({
+              type: 'danger',
+              message: val.error
+            });
+            reInit();
+          }else{
+            notification({
+              type: 'danger',
+              message: 'Error Initializing train data'
+            });
+            reInit();
+          }
 
-      }
-      break;
+        },
+        error: (xhr, status, error) => {
+          notification({
+            type: 'danger',
+            message: error
+          });
+          reInit();
+        }
+      });
+    break;
   }
 };
 
 const terminateSubprocess = () => {
   $.ajax({
     url: '/terminate',
-    success: (data, status, xhr) =>{
+    success: (data) => {
       data = JSON.parse(data);
       notification({
         type: 'info',
         message: data.info
       })
     },
-    error: (xhr, status, error) =>{
+    error: (error) => {
       notification({
         type: 'danger',
         message: error

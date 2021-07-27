@@ -1,3 +1,4 @@
+import imp
 import re
 import sys
 import json
@@ -5,6 +6,8 @@ import json
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from pathlib import Path
+from datetime import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 
@@ -12,33 +15,34 @@ import time
 import tensorflow as tf
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.layers import Layer, MaxPooling1D
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.layers import Concatenate, Dense, Input, LSTM, Embedding
 from tensorflow.keras.layers import Dropout, Bidirectional, Conv1D
-from tensorflow.keras.layers import Layer, MaxPooling1D
-from tensorflow.keras.models import Model
 from tensorflow.keras.metrics import Precision, Recall, AUC, BinaryAccuracy
+from tensorflow.keras.layers import Concatenate, Dense, Input, LSTM, Embedding
 
 
 def preprocess_text(v):
-    v = re.sub(r'http\S+', ' ', v)
-    v = re.sub(r'@\w+', ' ', v)
-    v = re.sub(r'pic.\S+', ' ', v)
-    v = re.compile(r'<[^>]+>').sub(' ', v)
-    v = re.sub('[^a-zA-Z]', ' ', v)
-    v = re.sub(r"\s+[a-zA-Z]\s+", ' ', v)
-    v = re.sub(r'RT', ' ', v)
-    v = re.sub(r'\s+', ' ', v)
+    v = re.sub(r"http\S+", " ", v)
+    v = re.sub(r"@\w+", " ", v)
+    v = re.sub(r"pic.\S+", " ", v)
+    v = re.compile(r"<[^>]+>").sub(" ", v)
+    v = re.sub("[^a-zA-Z]", " ", v)
+    v = re.sub(r"\s+[a-zA-Z]\s+", " ", v)
+    v = re.sub(r"RT", " ", v)
+    v = re.sub(r"\s+", " ", v)
     return v.strip()
 
 
-def plot_metrics(hist):
+def plot_metrics(hist, appended):
     m = [
         "loss",
         "accuracy",
-        "precision", "recall",
+        "precision",
+        "recall",
         "auc",
     ]
     for n, m in enumerate(m):
@@ -72,17 +76,17 @@ def plot_metrics(hist):
             plt.ylim([0, 1])
 
         plt.legend()
-        plt.savefig("Training History.png")
+        plt.savefig(appended + "Training History.png")
 
 
-def plot_cm(labels, predictions):
+def plot_cm(labels, predictions, appended):
     cm = confusion_matrix(labels, predictions)
     plt.figure(figsize=(5, 5))
     sns.heatmap(cm, annot=True, fmt="d")
     plt.title("Confusion matrix (non-normalized))")
     plt.ylabel("Actual label")
     plt.xlabel("Predicted label")
-    plt.savefig("confusion matrix.png")
+    plt.savefig(appended + "-confusion matrix.png")
 
 
 class BAttention(Layer):
@@ -102,28 +106,39 @@ class BAttention(Layer):
         return context_vector, attention_weights
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     metrics = [
-        BinaryAccuracy(name='accuracy'),
-        Precision(name='precision'),
-        Recall(name='recall'),
-        AUC(name='auc'),
+        BinaryAccuracy(name="accuracy"),
+        Precision(name="precision"),
+        Recall(name="recall"),
+        AUC(name="auc"),
     ]
 
     args = sys.argv
-    if args[1] == '--train' and args[2]:
-        json_string = args[2]
-        json_string = json.loads(json_string)
-        df = pd.DataFrame.from_dict(json_string, orient='index')
-        df.reset_index(level=0, inplace=True)
-        print( df.head() )
+    filename = "Musical_Instruments_5.json"
+    if args[1] == "--train" and args[2] == "--from-temp" and args[3]:
+        filename = args[3]
+        try:
+            with open('tmp/'+filename+'.txt') as f:
+                _json = json.load(f)
+        except FileNotFoundError as e:
+            exit(e)
+        df = pd.DataFrame(_json)
+        print(df.head())
         exit()
-        # df = pd.read_json("Musical_Instruments_5.json", lines=True)
-        X = df.reviewText.astype('str').apply(preprocess_text)
-        Y = pd.get_dummies(df.overall).values
-        sequence_length = [len(x.split(" ")) for x in X]
-        maxlen = int(np.mean([np.mean(sequence_length), np.median(sequence_length)]))
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+    else:
+        df = pd.read_json(filename, lines=True)
+    date = datetime.now()
+    date = date.strftime("%d%m%Y|%H:%M:%S")
+    s = filename.split('.')[0] + ' - ' + date
+    Path('models/'+s).mkdir(exist_ok=True)
+    X = df.reviewText.astype("str").apply(preprocess_text)
+    Y = [ 1 if x >=3 else 0 for x in df.overall]
+    sequence_length = [len(x.split(" ")) for x in X]
+    maxlen = int(np.mean([np.mean(sequence_length), np.median(sequence_length)]))
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        X, Y, test_size=0.3, random_state=42
+    )
 
     # Tokenize sentences
     print("Tokenizing words ...... ")
@@ -134,35 +149,39 @@ if __name__ == '__main__':
     X_test = tokenizer.texts_to_sequences(X_test)
     vocab_size = len(tokenizer.word_index) + 1
     print("Found {} unique words".format(vocab_size))
-    print('Time taken : {}s'.format(time.time() - start))
-    print('Padding Sentences')
+    print("Time taken : {}s".format(time.time() - start))
+    print("Padding Sentences")
     start = time.time()
-    X_train = pad_sequences(X_train, padding='post', maxlen=maxlen)
-    X_test = pad_sequences(X_test, padding='post', maxlen=maxlen)
-    print('Time taken : {}s'.format(time.time() - start))
+    X_train = pad_sequences(X_train, padding="post", maxlen=maxlen)
+    X_test = pad_sequences(X_test, padding="post", maxlen=maxlen)
+    print("Time taken : {}s".format(time.time() - start))
 
     X_train = np.asarray(X_train)
     X_test = np.asarray(X_test)
     Y_train = np.asarray(Y_train)
     Y_test = np.asarray(Y_test)
 
-    sequence_input = Input(shape=(maxlen,), dtype='int32')
+    sequence_input = Input(shape=(maxlen,), dtype="int32")
     embedding_layer = Embedding(vocab_size, 100)(sequence_input)
-    cnn_layer = Conv1D(16, 2, activation="relu", padding="same")(embedding_layer)
+    cnn_layer = Conv1D(32, 2, activation="relu", padding="same")(embedding_layer)
     max_pool = MaxPooling1D()(cnn_layer)
-    lstm = Bidirectional(LSTM(32, return_sequences=True))(max_pool)
-    l_output, f_h, f_c, b_h, b_c = Bidirectional(LSTM(32, return_sequences=True, return_state=True))(max_pool)
+    cnn_layer2 = Conv1D(32, 3, activation="relu", padding="same")(max_pool)
+    max_pool2 = MaxPooling1D()(cnn_layer2)
+    lstm = Bidirectional(LSTM(32, return_sequences=True))(max_pool2)
+    l_output, f_h, f_c, b_h, b_c = Bidirectional(
+        LSTM(32, return_sequences=True, return_state=True)
+    )(max_pool)
     state = Concatenate()([f_h, b_h])
     c_v, _att = BAttention(20)(state, l_output)
-    dense = Dense(16, activation='relu')(c_v)
+    dense = Dense(16, activation="relu")(c_v)
     dropout = Dropout(0.3)(dense)
-    output = Dense(5, activation="softmax")(dropout)
+    output = Dense(1, activation="sigmoid")(dropout)
 
     model = Model(inputs=sequence_input, outputs=output)
-    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=metrics)
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=metrics)
     model.summary()
 
-    es = EarlyStopping(monitor='val_loss', mode='min', patience=2, verbose=1)
+    es = EarlyStopping(monitor="val_loss", mode="min", patience=2, verbose=1)
     history = model.fit(
         X_train,
         Y_train,
@@ -170,21 +189,23 @@ if __name__ == '__main__':
         verbose=True,
         validation_data=(X_test, Y_test),
         batch_size=100,
-        callbacks=[es]
+        callbacks=[es],
     )
 
     training_time = time.time() - start
     print("Training Time : ", training_time)
-    _, t_acc, t_pre, t_rec, t_auc = model.evaluate(X_test)
 
-    model.save("att_model")
+    model.save(s+"_model")
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     mpl.rcParams["figure.figsize"] = (12, 18)
     plot_metrics(history)
 
     prediction = model.predict(X_test)
-    y_pred = (prediction > 0.5)
+    y_pred = prediction > 0.5
     report = classification_report(Y_test, y_pred)
     print(report)
-    plot_cm(np.array([np.argmax(x) for x in Y_test]), np.array([np.argmax(x) for x in y_pred]))
+    plot_cm(
+        np.array([np.argmax(x) for x in Y_test]),
+        np.array([np.argmax(x) for x in y_pred]),
+    )

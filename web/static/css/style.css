@@ -111,6 +111,9 @@ body {
   background-repeat: round;
   outline: none;
 }
+.site__section.red-height{
+  min-height: 40vh !important;
+}
 
 .button {
   display: inline-block;
@@ -233,6 +236,16 @@ table td {
   display: inline-block;
 }
 
+.upld{
+  position: absolute; 
+  right: 46%;
+}
+
+.btn-proceed{
+  display: flex; 
+  justify-content: center;
+}
+
 ::-webkit-scrollbar-track {
   -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
@@ -269,8 +282,14 @@ table td {
 
 #console {
   text-align: center;
+  height: 34em;
   background-color: white;
   padding: 20px;
   overflow-x: scroll;
   overflow-y: scroll;
+}
+
+#scrollable p{
+  font-family: monospace;
+  font-size: 12px;
 }
