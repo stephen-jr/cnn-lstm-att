@@ -102,17 +102,15 @@ body {
 }
 
 .site__section--start {
-  background: url("../img/index.png") 50% / cover no-repeat;
+  /* background: url("../img/index.png") 50% / cover no-repeat; */
+  background: url("../img/index.png");
+  background-size: cover;
   outline: none;
 }
 
-.site__section--start.--end{
-  background: url("../img/index.png");
-  background-repeat: round;
-  outline: none;
-}
 .site__section.red-height{
   min-height: 40vh !important;
+  background-repeat: round;
 }
 
 .button {
@@ -292,4 +290,9 @@ table td {
 #scrollable p{
   font-family: monospace;
   font-size: 12px;
+  text-align: left;
+}
+#scrollable{
+  overflow-y: scroll;
+  overflow-x: scroll;
 }

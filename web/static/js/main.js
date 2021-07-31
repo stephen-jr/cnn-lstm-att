@@ -74,11 +74,11 @@ const formatTable = (results) => {
   table_data += "</table>";
   $("#file_table .tbl").html(table_data);
   $("#insights_table").hide();
-  if ($("#file_table").hasClass("col-md-7")) {
-    $("#file_table").removeClass("col-md-7");
+  if ($("#file_table").hasClass("col-md-9")) {
+    $("#file_table").removeClass("col-md-9");
   }
   $("#table").show();
-  $("main .site__section").css("min-height", "40vh");
+  $("main .site__section").addClass('red-height');
   fileData = results;
 }
 
@@ -96,6 +96,7 @@ const upload = () => {
     data = event.target.files[0];
     // console.log(data);
     ext = data.name.split(".").pop();
+    fileName = data.name
     switch (ext) {
       case 'csv':
         Papa.parse(data, {
@@ -111,8 +112,15 @@ const upload = () => {
         reader = new FileReader();
         reader.readAsText(data)
         reader.onload = (event) => {
-          fileData = event.target.result.split("\n");
-          fileName = data.name
+          v = [], l = event.target.result.split("\n");
+          l.forEach(e => {
+            try{ 
+              v.push( JSON.parse(e) ); 
+            }catch(err){ 
+              return
+            }
+          });
+          formatTable({ data: v });
           $('#message').text(fileName);
         }
         break;
@@ -127,7 +135,7 @@ const upload = () => {
 };
 
 const _beforeProcessDataUI = () => {
-  $("main .site__section").css("min-height", "100vh").removeClass('--end red-height');
+  $("main .site__section").removeClass('red-height');
   $("#next").hide();
   $(".box").hide();
   $("#message").html("Please Wait while your file is processed");
@@ -149,8 +157,7 @@ const _afterProcessDataUI = (val) => {
         type: "danger",
         message: val.error,
       });
-      $("#loader").hide();
-      $(".upld").show();
+     reInit();
     } else {
       $("#loader").hide();
       $(".upld").show();
@@ -190,7 +197,7 @@ const _afterProcessDataUI = (val) => {
       $("#table").show();
       $("#insights_table .tbl").html(table_data);
       $("#insights_table").show();
-      $("main .site__section").css("min-height", "40vh").addClass('--end');
+      $("main .site__section").addClass('red-height');
     }
   } else {
     notification({
@@ -219,7 +226,10 @@ const processDataFlask = () => {
         method: 'POST',
         contentType: "application/json",
         dataType: "json",
-        data: JSON.stringify(fileData.data),
+        data: JSON.stringify({
+          fileName: fileName,
+          data: fileData.data
+        }),
         success: (val, status, xhr) => {
           _afterProcessDataUI(val);
         },
@@ -241,25 +251,30 @@ const processDataFlask = () => {
         dataType: "json",
         data: JSON.stringify({
           fileName: fileName,
-          data: fileData
+          data: fileData.data
         }),
         success: (val, status, xhr) => {
           if(val.info){
+            $('#table').hide();
             let source = new EventSource(url);
             source.onmessage = (e) => {
               let { data } = e;
               data = JSON.parse(data);
               if( !($('.site__section').hasClass('red-height')) ){
-                $('.site__section').addClass('red-height --end');
+                $('.site__section').addClass('red-height');
               }
               $('#console').show();
               if (data.execution) {
                 $('#scrollable').append(`<p>${data.response}</p>`);
-                $("#scrollable").scrollTop = $("#scrollable").scrollHeight;
+                $("#console").scrollTop($(this).height());
               }else if (data.info) {
+                msg = data.info
+                if(data.directory){
+                  msg += "Details can be located on this directory:"+data.directory
+                }
                 notification({
                   type: "info",
-                  message: data.info,
+                  message: msg,
                 });
                 reInit();
                 source.close();
@@ -278,8 +293,9 @@ const processDataFlask = () => {
             source.onerror = (error) => {
               notification({
                 type: 'danger',
-                message: error
+                message: "Error Initializing model training. Try again with another file"
               });
+              source.close();
               reInit();
             }
           }else if(val.error){ 
@@ -288,6 +304,7 @@ const processDataFlask = () => {
               message: val.error
             });
             reInit();
+            source.close();
           }else{
             notification({
               type: 'danger',

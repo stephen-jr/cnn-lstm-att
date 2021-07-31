@@ -1,4 +1,3 @@
-import imp
 import re
 import sys
 import json
@@ -7,7 +6,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from pathlib import Path
-from datetime import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 
@@ -76,7 +74,7 @@ def plot_metrics(hist, appended):
             plt.ylim([0, 1])
 
         plt.legend()
-        plt.savefig(appended + "Training History.png")
+        plt.savefig(appended + "/Training History.png")
 
 
 def plot_cm(labels, predictions, appended):
@@ -86,7 +84,7 @@ def plot_cm(labels, predictions, appended):
     plt.title("Confusion matrix (non-normalized))")
     plt.ylabel("Actual label")
     plt.xlabel("Predicted label")
-    plt.savefig(appended + "-confusion matrix.png")
+    plt.savefig(appended + "/confusion matrix.png")
 
 
 class BAttention(Layer):
@@ -116,22 +114,20 @@ if __name__ == "__main__":
 
     args = sys.argv
     filename = "Musical_Instruments_5.json"
-    if args[1] == "--train" and args[2] == "--from-temp" and args[3]:
+    if args[1] == "--train" and args[2] == "--from-temp" and args[3] and args[4]:
         filename = args[3]
+        s = args[4]
+        s = "models/" + s
         try:
-            with open('tmp/'+filename+'.txt') as f:
-                _json = json.load(f)
+            with open('tmp/'+filename, 'r') as f:
+                j = json.load(f)
+            df = pd.DataFrame(j)
         except FileNotFoundError as e:
             exit(e)
-        df = pd.DataFrame(_json)
-        print(df.head())
-        exit()
     else:
         df = pd.read_json(filename, lines=True)
-    date = datetime.now()
-    date = date.strftime("%d%m%Y|%H:%M:%S")
-    s = filename.split('.')[0] + ' - ' + date
-    Path('models/'+s).mkdir(exist_ok=True)
+    
+    Path(s).mkdir(exist_ok=True)
     X = df.reviewText.astype("str").apply(preprocess_text)
     Y = [ 1 if x >=3 else 0 for x in df.overall]
     sequence_length = [len(x.split(" ")) for x in X]
@@ -195,17 +191,19 @@ if __name__ == "__main__":
     training_time = time.time() - start
     print("Training Time : ", training_time)
 
-    model.save(s+"_model")
+    model.save(s+"/att_model")
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     mpl.rcParams["figure.figsize"] = (12, 18)
-    plot_metrics(history)
+    plot_metrics(history, s)
 
     prediction = model.predict(X_test)
     y_pred = prediction > 0.5
     report = classification_report(Y_test, y_pred)
+    print("=========Test Classification Report============")
     print(report)
     plot_cm(
         np.array([np.argmax(x) for x in Y_test]),
         np.array([np.argmax(x) for x in y_pred]),
+        s
     )
