@@ -129,7 +129,7 @@ if __name__ == "__main__":
     
     Path(s).mkdir(exist_ok=True)
     X = df.reviewText.astype("str").apply(preprocess_text)
-    Y = [ 1 if x >=3 else 0 for x in df.overall]
+    Y = [ 1 if x >3 else 0 for x in df.overall]
     sequence_length = [len(x.split(" ")) for x in X]
     maxlen = int(np.mean([np.mean(sequence_length), np.median(sequence_length)]))
     X_train, X_test, Y_train, Y_test = train_test_split(
